@@ -63,6 +63,7 @@ function ImportDeclaration(t, path, state) {
 
 module.exports = function resolveWildcardImports(babel) {
   return {
+    name: 'transform-resolve-wildcard-imports',
     visitor: {
       ImportDeclaration: ImportDeclaration.bind(null, babel.types)
     }
