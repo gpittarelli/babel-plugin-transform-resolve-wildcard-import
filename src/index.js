@@ -2,9 +2,35 @@ var flatten = function (arr) {
   return [].concat.apply([], arr);
 }
 
+function shouldTransform(importName, opts) {
+  if (!opts) {
+    return true;
+  }
+
+  if (typeof opts === 'string') {
+    opts = [opts];
+  }
+
+  if (Array.isArray(opts)) {
+    for (var i = 0; i < opts.length; ++i) {
+      if ((new RegExp(opts[i])).exec(importName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  return true;
+}
+
 function ImportDeclaration(t, path, state) {
   var node = path.node,
-    scope = path.scope;
+    scope = path.scope,
+    opts = state.opts;
+
+  if (!shouldTransform(node.source.value, opts)) {
+    return;
+  }
 
   node.specifiers = flatten(node.specifiers.map(function (spec) {
     if (!t.isImportNamespaceSpecifier(spec)) {
