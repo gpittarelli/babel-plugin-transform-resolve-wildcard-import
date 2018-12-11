@@ -38,3 +38,24 @@ tree-shake better.
 Note: This plugin only works when the wildcard import (`x` in the
 example) is only ever used in a property access. If you use `x`
 directly, then we leave the wildcard import in place.
+
+## Options
+
+By default this will apply to all wildcard imports, for example with a
+.babelrc like:
+
+    {
+        "plugins": ["babel-plugin-transform-resolve-wildcard-import"]
+    }
+
+If you only want it to apply this to certain import paths you can
+restrict the transforms witih an array of regular expressions:
+
+    {
+        "plugins": [
+            ["babel-plugin-transform-resolve-wildcard-import", [
+                "^lodash$",
+                "^\.\.?\/UI(\/(index(\.js)?)?)?$"
+            ]]
+        ]
+    }
