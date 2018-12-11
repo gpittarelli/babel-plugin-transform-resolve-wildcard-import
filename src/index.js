@@ -1,10 +1,8 @@
-var t = require('babel-types');
-
 var flatten = function (arr) {
   return [].concat.apply([], arr);
 }
 
-function ImportDeclaration(path, state) {
+function ImportDeclaration(t, path, state) {
   var node = path.node,
     scope = path.scope;
 
@@ -59,10 +57,10 @@ function ImportDeclaration(path, state) {
   }));
 }
 
-module.exports = function resolveWildcardImports() {
+module.exports = function resolveWildcardImports(babel) {
   return {
     visitor: {
-      ImportDeclaration: ImportDeclaration
+      ImportDeclaration: ImportDeclaration.bind(null, babel.types)
     }
   }
 }
