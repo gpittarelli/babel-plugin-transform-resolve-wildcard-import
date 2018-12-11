@@ -4,7 +4,10 @@ var assert = require('assert');
 function transform(code) {
   return babel.transform(code, {
     babelrc: false,
-    plugins: [require('../')]
+    plugins: [require('../')],
+    parserOpts: {
+      plugins: ['*']
+    }
   }).code;
 }
 
@@ -36,6 +39,18 @@ describe('wildcard import transformations', function() {
     assert.equal(
       transform(orig),
       orig // "import { a as _a } from 'y';_a(); x = {};x.b();x.c.d();"
+    );
+  });
+
+  it('should transform in the prescence of JSX member expressions', function() {
+    var orig = "import * as x from 'y';<x.A></x.A>";
+
+    assert.equal(
+      transform(orig),
+      "import { A as _A } from 'y';var x = {\n" +
+      "  A: _A\n" +
+      "};\n" +
+      "<x.A></x.A>;"
     );
   });
 });

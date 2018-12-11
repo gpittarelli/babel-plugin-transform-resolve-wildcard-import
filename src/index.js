@@ -17,7 +17,11 @@ function ImportDeclaration(t, path, state) {
 
     var canReplace = noShadows && usages.every(function (u) {
       var container = u.container;
-      return t.isMemberExpression(container) && !container.computed;
+      return (
+        t.isMemberExpression(container) && !container.computed
+      ) || (
+        t.isJSXMemberExpression(container)
+      );
     });
 
     if (!canReplace) {
