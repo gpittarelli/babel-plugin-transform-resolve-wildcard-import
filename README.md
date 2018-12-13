@@ -49,13 +49,14 @@ By default this will apply to all wildcard imports, for example with a
     }
 
 If you only want it to apply this to certain import paths you can
-restrict the transforms witih an array of regular expressions:
+restrict the transforms with an array of regular expressions passed as
+`only`:
 
     {
         "plugins": [
-            ["babel-plugin-transform-resolve-wildcard-import", [
+            ["babel-plugin-transform-resolve-wildcard-import", {only: [
                 "^lodash$",
                 "^\.\.?\/UI(\/(index(\.js)?)?)?$"
-            ]]
+            ]}]
         ]
     }

@@ -7,6 +7,10 @@ function shouldTransform(importName, opts) {
     return true;
   }
 
+  if (opts.only) {
+    opts = opts.only;
+  }
+
   if (typeof opts === 'string') {
     opts = [opts];
   }

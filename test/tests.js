@@ -59,7 +59,13 @@ describe('wildcard import transformations', function() {
   it('should not transform unspecified imports', function() {
     var orig = "import * as x from 'y';<x.A></x.A>;";
 
-    assert.equal(transform(orig, ['x']), orig);
+    assert.equal(transform(orig, {only: ['x']}), orig);
+  });
+
+  it('accepts single string \'only\' option', function() {
+    var orig = "import * as x from 'y';<x.A></x.A>;";
+
+    assert.equal(transform(orig, {only: 'x'}), orig);
   });
 
   it('should transform specified imports', function() {
