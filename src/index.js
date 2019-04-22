@@ -41,8 +41,24 @@ function ImportDeclaration(t, path, state) {
       return spec;
     }
 
-    var binding = scope.getBinding(spec.local.name),
-      usages = binding.referencePaths,
+    var localName = spec.local.name;
+
+    if (!scope.hasBinding(localName)) {
+      return spec;
+    }
+
+    if (scope.uids[localName]) {
+      // Re-crawl the scope to resolve UIDs to proper bindings.
+      scope.crawl();
+    }
+
+    var binding = scope.getBinding(localName);
+
+    if (!binding) {
+      return spec;
+    }
+
+    var usages = binding.referencePaths,
       noShadows = binding.constantViolations.length === 0;
 
     var canReplace = noShadows && usages.every(function (u) {
