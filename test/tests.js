@@ -6,10 +6,11 @@ function transform(code, opts) {
 
   return babel.transform(code, {
     babelrc: false,
-    plugins: [opts ? [plugin, opts] : plugin],
-    parserOpts: {
-      plugins: ['*']
-    }
+    plugins: [
+      'syntax-jsx',
+      'transform-export-extensions',
+      opts ? [plugin, opts] : plugin
+    ]
   }).code;
 }
 
@@ -77,6 +78,16 @@ describe('wildcard import transformations', function() {
       "  A: _A\n" +
       "};\n" +
       "<x.A></x.A>;"
+    );
+  });
+
+  it('should not fail when used with `transform-export-extensions`', function() {
+    var orig = "export * as x from 'y';",
+      out = transform(orig);
+
+    assert.equal(transform(orig),
+      "import * as _x from 'y';\n" +
+      "export { _x as x };"
     );
   });
 });
