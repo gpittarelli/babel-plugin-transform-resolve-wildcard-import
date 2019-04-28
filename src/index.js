@@ -1,5 +1,6 @@
 var flatten = function (arr) {
-  return [].concat.apply([], arr);
+  if (arr.length === 0) return arr;
+  return Array.prototype.concat.apply([], arr);
 }
 
 function shouldTransform(importName, opts) {
