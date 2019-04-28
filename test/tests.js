@@ -8,6 +8,7 @@ function transform(code, opts) {
     babelrc: false,
     plugins: [
       'syntax-jsx',
+      'transform-es2015-destructuring',
       'transform-export-extensions',
       opts ? [plugin, opts] : plugin
     ]
@@ -88,6 +89,44 @@ describe('wildcard import transformations', function() {
     assert.equal(transform(orig),
       "import * as _x from 'y';\n" +
       "export { _x as x };"
+    );
+  });
+
+  it('should transform from destructuring assignments', function() {
+    var orig = "import * as x from 'y';var { a, b, c } = x;",
+      out = transform(orig);
+
+    assert.equal(transform(orig),
+      "import { a as _a, b as _b, c as _c } from 'y';var x = {\n" +
+      "  a: _a,\n" +
+      "  b: _b,\n" +
+      "  c: _c\n" +
+      "};\n" +
+      "var a = x.a,\n" +
+      "    b = x.b,\n" +
+      "    c = x.c;"
+    );
+  });
+
+  it('should not transform from destructuring assignments with literal properties', function() {
+    var orig = "import * as x from 'y';var { ['1a']: a, b, c } = x;",
+      out = transform(orig);
+
+    assert.equal(out,
+      "import * as x from 'y';var a = x['1a'],\n" +
+      "    b = x.b,\n" +
+      "    c = x.c;"
+    );
+  });
+
+  it('should not transform from destructuring assignments with computed properties', function() {
+    var orig = "import * as x from 'y';var { ['A'.toLowerCase()]: a, b, c } = x;",
+      out = transform(orig);
+
+    assert.equal(out,
+      "import * as x from 'y';var a = x['A'.toLowerCase()],\n" +
+      "    b = x.b,\n" +
+      "    c = x.c;"
     );
   });
 });

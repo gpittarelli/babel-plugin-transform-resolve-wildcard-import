@@ -27,6 +27,44 @@ function shouldTransform(importName, opts) {
   return true;
 }
 
+function checkDestructure(t, localName, container) {
+  switch (true) {
+    case !t.isVariableDeclarator(container):
+    case !t.isObjectPattern(container.id):
+    case !t.isIdentifier(container.init):
+    case container.init.name !== localName:
+      return false;
+
+    default:
+      return container.id.properties.every(function (prop) {
+        // Non-computed property keys can be both an identifier
+        // and a literal-value.  Only identifiers are supported.
+        return t.isIdentifier(prop.key);
+      });
+  }
+}
+
+function getUsedPropKeys(t, localName, path) {
+  var container = path.container;
+
+  switch (true) {
+    // Member access...
+    case t.isMemberExpression(container) && !container.computed:
+    case t.isJSXMemberExpression(container):
+      return container.property.name;
+
+    // Object destructuring assignment...
+    case checkDestructure(t, localName, container):
+      return container.id.properties.map(function(prop) {
+        return prop.key.name;
+      });
+
+    // Anything else does not apply to this function.
+    default:
+      return void 0;
+  }
+}
+
 function ImportDeclaration(t, path, state) {
   var node = path.node,
     scope = path.scope,
@@ -58,19 +96,10 @@ function ImportDeclaration(t, path, state) {
       return spec;
     }
 
-    var usages = binding.referencePaths,
+    var usedPropKeys = binding.referencePaths.map(getUsedPropKeys.bind(null, t, localName)),
       noShadows = binding.constantViolations.length === 0;
 
-    var canReplace = noShadows && usages.every(function (u) {
-      var container = u.container;
-      return (
-        t.isMemberExpression(container) && !container.computed
-      ) || (
-        t.isJSXMemberExpression(container)
-      );
-    });
-
-    if (!canReplace) {
+    if (!noShadows || !usedPropKeys.every(Boolean)) {
       return spec;
     }
 
@@ -78,10 +107,7 @@ function ImportDeclaration(t, path, state) {
       props = [],
       newIdents = Object.create(null);
 
-    usages.forEach(function (u) {
-      var name = u.container.property.name,
-        newIdent;
-
+    flatten(usedPropKeys).forEach(function (name) {
       if (newIdents[name]) {
         newIdent = newIdents[name];
       } else {
@@ -91,8 +117,6 @@ function ImportDeclaration(t, path, state) {
         );
         props.push(t.objectProperty(t.identifier(name), newIdent));
       }
-
-      u.container = newIdent;
     });
 
     if (props.length > 0) {
