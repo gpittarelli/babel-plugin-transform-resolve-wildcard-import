@@ -45,7 +45,7 @@ function checkDestructure(t, localName, container) {
   }
 }
 
-function getUsedPropKeys(t, localName, path) {
+function extractUsedPropKeys(t, localName, path) {
   var container = path.container;
 
   switch (true) {
@@ -64,6 +64,27 @@ function getUsedPropKeys(t, localName, path) {
     default:
       return void 0;
   }
+}
+
+function getUsedPropKeys(t, localName, binding) {
+  if (!binding) return [];
+  if (binding.constantViolations.length > 0) return [];
+
+  var referencePaths = binding.referencePaths,
+    len = referencePaths.length,
+    result = [];
+
+  for (var i = 0; i < len; i++) {
+    var propKeys = extractUsedPropKeys(t, localName, referencePaths[i]);
+
+    // Abort and return an empty array if `extractUsedPropKeys`
+    // could not be applied to the input.
+    if (propKeys == null) return [];
+
+    result.push(propKeys);
+  }
+
+  return flatten(result);
 }
 
 function ImportDeclaration(t, path, state) {
@@ -91,16 +112,9 @@ function ImportDeclaration(t, path, state) {
       scope.crawl();
     }
 
-    var binding = scope.getBinding(localName);
+    var usedPropKeys = getUsedPropKeys(t, localName, scope.getBinding(localName));
 
-    if (!binding) {
-      return spec;
-    }
-
-    var usedPropKeys = binding.referencePaths.map(getUsedPropKeys.bind(null, t, localName)),
-      noShadows = binding.constantViolations.length === 0;
-
-    if (!noShadows || !usedPropKeys.every(Boolean)) {
+    if (usedPropKeys.length === 0) {
       return spec;
     }
 
@@ -108,7 +122,7 @@ function ImportDeclaration(t, path, state) {
       props = [],
       newIdents = Object.create(null);
 
-    flatten(usedPropKeys).forEach(function (name) {
+    usedPropKeys.forEach(function (name) {
       if (newIdents[name]) {
         newIdent = newIdents[name];
       } else {
