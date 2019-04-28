@@ -1,132 +1,149 @@
+var path = require('path');
 var babel = require('babel-core');
-var assert = require('assert');
+var pluginTester = require('babel-plugin-tester');
 var plugin = require('../');
 
-function transform(code, opts) {
+pluginTester({
+  plugin, babel,
+  babelOptions: {
+    babelrc: true,
+    filename: path.join(__dirname, 'fixture.js'),
+    sourceRoot: __dirname
+  },
+  tests: {
+    'should handle basic wildcard case': {
+      code: `
+        import * as x from 'y';
+        x.a();
+        x.b();
+        x.c.d();
+      `,
+      output: `
+        import { a as _a, b as _b, c as _c } from 'y';
+        var x = {
+          a: _a,
+          b: _b,
+          c: _c
+        };
+        x.a();
+        x.b();
+        x.c.d();
+      `,
+    },
 
-  return babel.transform(code, {
-    babelrc: false,
-    plugins: [
-      'syntax-jsx',
-      'transform-es2015-destructuring',
-      'transform-export-extensions',
-      opts ? [plugin, opts] : plugin
-    ]
-  }).code;
-}
+    'should not transform if any non-property usages': {
+      code: `
+        import * as x from 'y';
+        var a = 'a';
+        x[a]();
+      `,
+    },
 
-describe('wildcard import transformations', function() {
-  it('should handle basic wildcard case', function() {
-    var orig = "import * as x from 'y';x.a();x.b();x.c.d();";
+    'should not transform in the presence of shadowing': {
+      code: `
+        import * as x from 'y';
+        x.a();
+        x = {};
+        x.b();
+        x.c.d();
+      `,
+    },
 
-    assert.equal(
-      transform(orig),
-      "import { a as _a, b as _b, c as _c } from 'y';var x = {\n" +
-        "  a: _a,\n" +
-        "  b: _b,\n" +
-        "  c: _c\n" +
-        "};\n" +
-        "x.a();x.b();x.c.d();"
-    );
-  });
+    'should transform in the presence of JSX member expressions': {
+      code: `
+        import * as x from 'y';
+        <x.A></x.A>;
+      `,
+      output: `
+        import { A as _A } from 'y';
+        var x = {
+          A: _A
+        };
+        <x.A></x.A>;
+      `,
+    },
 
-  it('should not transform if any non-property usages', function() {
-    var orig = "import * as x from 'y';var a = 'a';x[a]();",
-      out = transform(orig);
+    'should not transform unspecified imports': {
+      pluginOptions: { only: ['x'] },
+      code: `
+        import * as x from 'y';
+        <x.A></x.A>;
+      `,
+    },
 
-    assert.equal(orig, out);
-  });
+    'accepts single string `only` option': {
+      pluginOptions: { only: 'x' },
+      code: `
+        import * as x from 'y';
+        <x.A></x.A>;
+      `,
+    },
 
-  it('should not transform in the prescence of shadowing', function() {
-    var orig = "import * as x from 'y';x.a();x = {};x.b();x.c.d();";
+    'should transform specified imports': {
+      pluginOptions: ['y'],
+      code: `
+        import * as x from 'y';
+        <x.A></x.A>;
+      `,
+      output: `
+        import { A as _A } from 'y';
+        var x = {
+          A: _A
+        };
+        <x.A></x.A>;
+      `,
+    },
 
-    assert.equal(
-      transform(orig),
-      orig // "import { a as _a } from 'y';_a(); x = {};x.b();x.c.d();"
-    );
-  });
+    'should not fail when used with `transform-export-extensions`': {
+      code: `export * as x from 'y';`,
+      output: `
+        import * as _x from 'y';
+        export { _x as x };
+      `,
+    },
 
-  it('should transform in the prescence of JSX member expressions', function() {
-    var orig = "import * as x from 'y';<x.A></x.A>";
+    'should transform from destructuring assignments': {
+      code: `
+        import * as x from 'y';
+        var { a, b, c } = x;
+      `,
+      output: `
+        import { a as _a, b as _b, c as _c } from 'y';
+        var x = {
+          a: _a,
+          b: _b,
+          c: _c
+        };
+        var a = x.a,
+            b = x.b,
+            c = x.c;
+      `,
+    },
 
-    assert.equal(
-      transform(orig),
-      "import { A as _A } from 'y';var x = {\n" +
-      "  A: _A\n" +
-      "};\n" +
-      "<x.A></x.A>;"
-    );
-  });
+    'should not transform from destructuring assignments with literal properties': {
+      code: `
+        import * as x from 'y';
+        var { ['1a']: a, b, c } = x;
+      `,
+      output: `
+        import * as x from 'y';
+        var a = x['1a'],
+            b = x.b,
+            c = x.c;
+      `,
+    },
 
-  it('should not transform unspecified imports', function() {
-    var orig = "import * as x from 'y';<x.A></x.A>;";
-
-    assert.equal(transform(orig, {only: ['x']}), orig);
-  });
-
-  it('accepts single string \'only\' option', function() {
-    var orig = "import * as x from 'y';<x.A></x.A>;";
-
-    assert.equal(transform(orig, {only: 'x'}), orig);
-  });
-
-  it('should transform specified imports', function() {
-    var orig = "import * as x from 'y';<x.A></x.A>;";
-
-    assert.equal(
-      transform(orig, ['y']),
-      "import { A as _A } from 'y';var x = {\n" +
-      "  A: _A\n" +
-      "};\n" +
-      "<x.A></x.A>;"
-    );
-  });
-
-  it('should not fail when used with `transform-export-extensions`', function() {
-    var orig = "export * as x from 'y';",
-      out = transform(orig);
-
-    assert.equal(transform(orig),
-      "import * as _x from 'y';\n" +
-      "export { _x as x };"
-    );
-  });
-
-  it('should transform from destructuring assignments', function() {
-    var orig = "import * as x from 'y';var { a, b, c } = x;",
-      out = transform(orig);
-
-    assert.equal(transform(orig),
-      "import { a as _a, b as _b, c as _c } from 'y';var x = {\n" +
-      "  a: _a,\n" +
-      "  b: _b,\n" +
-      "  c: _c\n" +
-      "};\n" +
-      "var a = x.a,\n" +
-      "    b = x.b,\n" +
-      "    c = x.c;"
-    );
-  });
-
-  it('should not transform from destructuring assignments with literal properties', function() {
-    var orig = "import * as x from 'y';var { ['1a']: a, b, c } = x;",
-      out = transform(orig);
-
-    assert.equal(out,
-      "import * as x from 'y';var a = x['1a'],\n" +
-      "    b = x.b,\n" +
-      "    c = x.c;"
-    );
-  });
-
-  it('should not transform from destructuring assignments with computed properties', function() {
-    var orig = "import * as x from 'y';var { ['A'.toLowerCase()]: a, b, c } = x;",
-      out = transform(orig);
-
-    assert.equal(out,
-      "import * as x from 'y';var a = x['A'.toLowerCase()],\n" +
-      "    b = x.b,\n" +
-      "    c = x.c;"
-    );
-  });
+    'should not transform from destructuring assignments with computed properties': {
+      code: `
+        import * as x from 'y';
+        var { ['A'.toLowerCase()]: a, b, c } = x;
+      `,
+      output: `
+        import * as x from 'y';
+        var a = x['A'.toLowerCase()],
+            b = x.b,
+            c = x.c;
+      `,
+    }
+  }
 });
