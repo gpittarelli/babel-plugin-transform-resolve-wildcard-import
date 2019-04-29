@@ -37,11 +37,9 @@ function checkDestructure(t, localName, container) {
       return false;
 
     default:
-      return container.id.properties.every(function (prop) {
-        // Non-computed property keys can be both an identifier
-        // and a literal-value.  Only identifiers are supported.
-        return t.isIdentifier(prop.key);
-      });
+      // Non-computed property keys can be both an identifier
+      // and a literal-value.  Only identifiers are supported.
+      return container.id.properties.every(p => t.isIdentifier(p.key));
   }
 }
 
@@ -56,9 +54,7 @@ function extractUsedPropKeys(t, localName, path) {
 
     // Object destructuring assignment...
     case checkDestructure(t, localName, container):
-      return container.id.properties.map(function(prop) {
-        return prop.key.name;
-      });
+      return container.id.properties.map(p => p.key.name);
 
     // Anything else does not apply to this function.
     default:
@@ -96,7 +92,7 @@ function ImportDeclaration(t, path, state) {
     return;
   }
 
-  node.specifiers = flatten(node.specifiers.map(function (spec) {
+  node.specifiers = flatten(node.specifiers.map((spec) => {
     if (!t.isImportNamespaceSpecifier(spec)) {
       return spec;
     }
@@ -122,7 +118,7 @@ function ImportDeclaration(t, path, state) {
       props = [],
       newIdents = Object.create(null);
 
-    usedPropKeys.forEach(function (name) {
+    usedPropKeys.forEach((name) => {
       if (newIdents[name]) {
         newIdent = newIdents[name];
       } else {

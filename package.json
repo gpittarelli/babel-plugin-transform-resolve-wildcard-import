@@ -20,6 +20,9 @@
   },
   "author": "George Pittarelli <g@gjp.cc>",
   "license": "MIT",
+  "engines": {
+    "node": ">=4.0.0"
+  },
   "devDependencies": {
     "babel-core": "^6.20.0",
     "babel-plugin-syntax-jsx": "^6.18.0",
