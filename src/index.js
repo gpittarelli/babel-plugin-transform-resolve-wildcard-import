@@ -1,4 +1,4 @@
-var flatten = function (arr) {
+function flatten(arr) {
   if (arr.length === 0) return arr;
   return Array.prototype.concat.apply([], arr);
 }
