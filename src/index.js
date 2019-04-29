@@ -1,31 +1,35 @@
+var $pluginName = 'transform-resolve-wildcard-imports';
+
 function flatten(arr) {
   if (arr.length === 0) return arr;
   return Array.prototype.concat.apply([], arr);
 }
 
-function shouldTransform(importName, opts) {
-  if (!opts) {
-    return true;
-  }
+function normalizeOptions(opts, recurse) {
+  recurse = recurse == null || recurse;
 
-  if (opts.only) {
-    opts = opts.only;
+  if (!opts) return [];
+  if (typeof opts === 'object') {
+    if (Array.isArray(opts)) return opts;
+    if (Object.keys(opts).length === 0) return [];
+    if (recurse && opts.only) return normalizeOptions(opts.only, false);
   }
+  return [opts];
+}
 
-  if (typeof opts === 'string') {
-    opts = [opts];
-  }
+function shouldTransform(importName, whitelist) {
+  if (whitelist.length === 0) return true;
 
-  if (Array.isArray(opts)) {
-    for (var i = 0; i < opts.length; ++i) {
-      if ((new RegExp(opts[i])).exec(importName)) {
-        return true;
-      }
+  return whitelist.some(tester => {
+    switch (true) {
+      case tester instanceof RegExp:
+        return tester.exec(importName);
+      case typeof tester === 'function':
+        return Boolean(tester(importName));
+      default:
+        return false;
     }
-    return false;
-  }
-
-  return true;
+  });
 }
 
 function checkDestructure(t, localName, container) {
@@ -90,14 +94,26 @@ function getUsedPropKeys(t, localName, scope) {
   return flatten(result);
 }
 
+function setupState() {
+  this.set($pluginName, normalizeOptions(this.opts).map((opt, i) => {
+    switch (true) {
+      case typeof opt === 'string':
+        return new RegExp(opt);
+      case opt instanceof RegExp:
+      case typeof opt === 'function':
+        return opt;
+      default:
+        throw new Error(`[${$pluginName}] unsupported option provided to \`only\` at index ${i}`);
+    }
+  }));
+}
+
 function ImportDeclaration(t, path, state) {
   var node = path.node,
     scope = path.scope,
-    opts = state.opts;
+    whitelist = state.get($pluginName);
 
-  if (!shouldTransform(node.source.value, opts)) {
-    return;
-  }
+  if (!shouldTransform(node.source.value, whitelist)) return;
 
   node.specifiers = flatten(node.specifiers.map((spec) => {
     if (!t.isImportNamespaceSpecifier(spec)) return spec;
@@ -136,9 +152,10 @@ function ImportDeclaration(t, path, state) {
 
 module.exports = function resolveWildcardImports(babel) {
   return {
-    name: 'transform-resolve-wildcard-imports',
+    name: $pluginName,
+    pre: setupState,
     visitor: {
       ImportDeclaration: ImportDeclaration.bind(null, babel.types)
     }
-  }
-}
+  };
+};
