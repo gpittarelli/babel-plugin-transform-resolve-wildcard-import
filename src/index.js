@@ -62,7 +62,14 @@ function extractUsedPropKeys(t, localName, path) {
   }
 }
 
-function getUsedPropKeys(t, localName, binding) {
+function getUsedPropKeys(t, localName, scope) {
+  if (!scope.hasBinding(localName)) return [];
+
+  // Re-crawl the scope to resolve UIDs to proper bindings.
+  if (scope.uids[localName]) scope.crawl();
+
+  var binding = scope.getBinding(localName);
+
   if (!binding) return [];
   if (binding.constantViolations.length > 0) return [];
 
@@ -93,26 +100,11 @@ function ImportDeclaration(t, path, state) {
   }
 
   node.specifiers = flatten(node.specifiers.map((spec) => {
-    if (!t.isImportNamespaceSpecifier(spec)) {
-      return spec;
-    }
+    if (!t.isImportNamespaceSpecifier(spec)) return spec;
 
-    var localName = spec.local.name;
+    var usedPropKeys = getUsedPropKeys(t, spec.local.name, scope);
 
-    if (!scope.hasBinding(localName)) {
-      return spec;
-    }
-
-    if (scope.uids[localName]) {
-      // Re-crawl the scope to resolve UIDs to proper bindings.
-      scope.crawl();
-    }
-
-    var usedPropKeys = getUsedPropKeys(t, localName, scope.getBinding(localName));
-
-    if (usedPropKeys.length === 0) {
-      return spec;
-    }
+    if (usedPropKeys.length === 0) return spec;
 
     var newSpecs = [],
       props = [],
