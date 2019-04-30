@@ -128,9 +128,7 @@ pluginTester({
           b: _b,
           c: _c
         };
-        var a = x.a,
-            b = x.b,
-            c = x.c;
+        var { a, b, c } = x;
       `,
     },
 
@@ -139,24 +137,12 @@ pluginTester({
         import * as x from 'y';
         var { ['1a']: a, b, c } = x;
       `,
-      output: `
-        import * as x from 'y';
-        var a = x['1a'],
-            b = x.b,
-            c = x.c;
-      `,
     },
 
     'should not transform from destructuring assignments with computed properties': {
       code: `
         import * as x from 'y';
         var { ['A'.toLowerCase()]: a, b, c } = x;
-      `,
-      output: `
-        import * as x from 'y';
-        var a = x['A'.toLowerCase()],
-            b = x.b,
-            c = x.c;
       `,
     }
   }

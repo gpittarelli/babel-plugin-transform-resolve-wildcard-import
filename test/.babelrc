@@ -1,7 +1,6 @@
 {
     "plugins": [
         "syntax-jsx",
-        "transform-es2015-destructuring",
         "transform-export-extensions"
     ]
 }
