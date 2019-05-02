@@ -127,7 +127,7 @@ function setupState() {
   }));
 }
 
-function ImportDeclaration(t, path, state) {
+function ImportDeclaration(t, supportsESM, path, state) {
   var node = path.node,
     scope = path.scope,
     whitelist = state.get($pluginName);
@@ -157,7 +157,7 @@ function ImportDeclaration(t, path, state) {
 
     if (props.length > 0) {
       path.insertAfter(
-        t.variableDeclaration('var', [
+        t.variableDeclaration(supportsESM ? 'const' : 'var', [
           t.variableDeclarator(spec.local, t.objectExpression(props))
         ])
       );
@@ -167,12 +167,17 @@ function ImportDeclaration(t, path, state) {
   }));
 }
 
-module.exports = function resolveWildcardImports(babel) {
+function supportsESM(api) {
+  if (typeof api.caller !== 'function') return false;
+  return api.caller(caller => Boolean(caller && caller.supportsStaticESM));
+}
+
+module.exports = function resolveWildcardImports(api) {
   return {
     name: $pluginName,
     pre: setupState,
     visitor: {
-      ImportDeclaration: ImportDeclaration.bind(null, babel.types)
+      ImportDeclaration: ImportDeclaration.bind(null, api.types, supportsESM(api))
     }
   };
 };
