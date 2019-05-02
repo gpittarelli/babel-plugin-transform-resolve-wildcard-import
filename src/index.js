@@ -5,6 +5,10 @@ function flatten(arr) {
   return Array.prototype.concat.apply([], arr);
 }
 
+function isDecorated(node) {
+  return node.decorators && node.decorators.length > 0;
+}
+
 function normalizeOptions(opts, recurse) {
   recurse = recurse == null || recurse;
 
@@ -38,12 +42,27 @@ function checkDestructure(t, localName, container) {
     case !t.isObjectPattern(container.id):
     case !t.isIdentifier(container.init):
     case container.init.name !== localName:
+    // Decorators are not supported.
+    case isDecorated(container.id):
       return false;
 
     default:
-      // Non-computed property keys can be both an identifier
-      // and a literal-value.  Only identifiers are supported.
-      return container.id.properties.every(p => t.isIdentifier(p.key));
+      return container.id.properties.every((prop) => {
+        switch (true) {
+          // Only property-based destructuring is supported.
+          case !t.isObjectProperty(prop):
+          // Non-computed property keys can be both an identifier
+          // and a literal-value.  Only identifiers are supported.
+          case !t.isIdentifier(prop.key):
+          // Decorators are not supported.
+          case isDecorated(prop):
+          case isDecorated(prop.key):
+          case isDecorated(prop.value):
+            return false;
+          default:
+            return true;
+        }
+      });
   }
 }
 
