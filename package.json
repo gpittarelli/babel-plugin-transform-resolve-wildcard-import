@@ -16,7 +16,8 @@
     "url": "https://github.com/gpittarelli/babel-plugin-transform-resolve-wildcard-import.git"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "debug-test": "mocha --inspect-brk"
   },
   "author": "George Pittarelli <g@gjp.cc>",
   "license": "MIT",
