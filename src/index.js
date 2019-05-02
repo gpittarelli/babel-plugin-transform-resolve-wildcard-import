@@ -146,15 +146,13 @@ function ImportDeclaration(t, path, state) {
       newIdents = Object.create(null);
 
     usedPropKeys.forEach((name) => {
-      if (newIdents[name]) {
-        newIdent = newIdents[name];
-      } else {
-        newIdent = newIdents[name] = scope.generateUidIdentifier(name);
-        newSpecs.push(
-          t.importSpecifier(newIdent, t.identifier(name))
-        );
-        props.push(t.objectProperty(t.identifier(name), newIdent));
-      }
+      if (newIdents[name] != null) return;
+
+      var newIdent = newIdents[name] = scope.generateUidIdentifier(name);
+      newSpecs.push(
+        t.importSpecifier(newIdent, t.identifier(name))
+      );
+      props.push(t.objectProperty(t.identifier(name), newIdent));
     });
 
     if (props.length > 0) {
