@@ -1,4 +1,4 @@
-var $pluginName = 'transform-resolve-wildcard-imports';
+const $pluginName = 'transform-resolve-wildcard-imports';
 
 function flatten(arr) {
   if (arr.length === 0) return arr;
@@ -67,7 +67,7 @@ function checkDestructure(t, localName, container) {
 }
 
 function extractUsedPropKeys(t, localName, path) {
-  var container = path.container;
+  const container = path.container;
 
   switch (true) {
     // Member access...
@@ -91,17 +91,17 @@ function getUsedPropKeys(t, localName, scope) {
   // Re-crawl the scope to resolve UIDs to proper bindings.
   if (scope.uids[localName]) scope.crawl();
 
-  var binding = scope.getBinding(localName);
+  const binding = scope.getBinding(localName);
 
   if (!binding) return [];
   if (binding.constantViolations.length > 0) return [];
 
-  var referencePaths = binding.referencePaths,
+  const referencePaths = binding.referencePaths,
     len = referencePaths.length,
     result = [];
 
-  for (var i = 0; i < len; i++) {
-    var propKeys = extractUsedPropKeys(t, localName, referencePaths[i]);
+  for (let i = 0; i < len; i++) {
+    const propKeys = extractUsedPropKeys(t, localName, referencePaths[i]);
 
     // Abort and return an empty array if `extractUsedPropKeys`
     // could not be applied to the input.
@@ -128,27 +128,26 @@ function setupState() {
 }
 
 function ImportDeclaration(t, supportsESM, path, state) {
-  var node = path.node,
-    scope = path.scope,
-    whitelist = state.get($pluginName);
+  const { node, scope } = path;
+  const whitelist = state.get($pluginName);
 
   if (!shouldTransform(node.source.value, whitelist)) return;
 
   node.specifiers = flatten(node.specifiers.map((spec) => {
     if (!t.isImportNamespaceSpecifier(spec)) return spec;
 
-    var usedPropKeys = getUsedPropKeys(t, spec.local.name, scope);
+    const usedPropKeys = getUsedPropKeys(t, spec.local.name, scope);
 
     if (usedPropKeys.length === 0) return spec;
 
-    var newSpecs = [],
+    const newSpecs = [],
       props = [],
       newIdents = Object.create(null);
 
     usedPropKeys.forEach((name) => {
       if (newIdents[name] != null) return;
 
-      var newIdent = newIdents[name] = scope.generateUidIdentifier(name);
+      const newIdent = newIdents[name] = scope.generateUidIdentifier(name);
       newSpecs.push(
         t.importSpecifier(newIdent, t.identifier(name))
       );
