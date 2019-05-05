@@ -233,7 +233,7 @@ function setupState() {
   }));
 }
 
-function ImportDeclaration(t, supportsESM, path, state) {
+function ImportDeclaration(t, path, state) {
   const { node, scope } = path;
   const whitelist = state.get($pluginName);
 
@@ -252,17 +252,12 @@ function ImportDeclaration(t, supportsESM, path, state) {
   }));
 }
 
-function supportsESM(api) {
-  if (typeof api.caller !== 'function') return false;
-  return api.caller(caller => Boolean(caller && caller.supportsStaticESM));
-}
-
 module.exports = function resolveWildcardImports(api) {
   return {
     name: $pluginName,
     pre: setupState,
     visitor: {
-      ImportDeclaration: ImportDeclaration.bind(null, api.types, supportsESM(api))
+      ImportDeclaration: ImportDeclaration.bind(null, api.types)
     }
   };
 };
