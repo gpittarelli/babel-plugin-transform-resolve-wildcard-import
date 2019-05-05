@@ -61,11 +61,6 @@ class UidMap {
 
 }
 
-function flatten(arr) {
-  if (arr.length === 0) return arr;
-  return Array.prototype.concat.apply([], arr);
-}
-
 function isDecorated(node) {
   return node.decorators && node.decorators.length > 0;
 }
