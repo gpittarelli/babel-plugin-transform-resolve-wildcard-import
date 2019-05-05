@@ -52,6 +52,24 @@ pluginTester({
       `,
     },
 
+    'should handle complex wildcard case': {
+      code: `
+        import defaultExport, * as x from 'y';
+        x.a();
+        x.b();
+        x.c.d();
+        defaultExport();
+      `,
+      output: `
+        import defaultExport from 'y';
+        import { a as _a, b as _b, c as _c } from 'y';
+        _a();
+        _b();
+        _c.d();
+        defaultExport();
+      `,
+    },
+
     'should not transform if any non-property usages': {
       code: `
         import * as x from 'y';

@@ -169,54 +169,42 @@ const xforms = {
   }
 };
 
-function extractTransformFn(t, localName, path) {
-  const parent = path.parent;
-
-  switch (true) {
-    // Member access...
-    case t.isMemberExpression(parent) && !parent.computed:
-      return xforms.MemberExpression.bind(null, t, path.parentPath);
-    
-    // JSX member access...
-    case t.isJSXMemberExpression(parent):
-      return xforms.JSXMemberExpression.bind(null, t, path.parentPath);
-
-    // Object destructuring assignment...
-    case checkDestructure(t, localName, parent):
-      return xforms.VariableDeclarator.bind(null, t, path.parentPath);
-
-    // Anything else does not apply to this function.
-    default:
-      return void 0;
-  }
-}
-
-function getTransforms(t, localName, scope) {
-  if (!scope.hasBinding(localName)) return [];
+function tryDoTransforms(t, localName, scope, uidMap) {
+  if (!scope.hasBinding(localName)) return false;
 
   // Re-crawl the scope to resolve UIDs to proper bindings.
   if (scope.uids[localName]) scope.crawl();
 
   const binding = scope.getBinding(localName);
 
-  if (!binding) return [];
-  if (binding.constantViolations.length > 0) return [];
+  if (!binding) return false;
+  if (binding.constantViolations.length > 0) return false;
+  if (binding.referencePaths.length === 0) return false;
 
-  const referencePaths = binding.referencePaths,
-    len = referencePaths.length,
-    result = [];
+  return binding.referencePaths.every((path) => {
+    const parent = path.parent;
 
-  for (let i = 0; i < len; i++) {
-    const xformFn = extractTransformFn(t, localName, referencePaths[i]);
+    switch (true) {
+      // Member access...
+      case t.isMemberExpression(parent) && !parent.computed:
+        xforms.MemberExpression(t, path.parentPath, uidMap);
+        return true;
+      
+      // JSX member access...
+      case t.isJSXMemberExpression(parent):
+        xforms.JSXMemberExpression(t, path.parentPath, uidMap);
+        return true;
 
-    // Abort and return an empty array if `extractUsedPropKeys`
-    // could not be applied to the input.
-    if (xformFn == null) return [];
-
-    result.push(xformFn);
-  }
-
-  return result;
+      // Object destructuring assignment...
+      case checkDestructure(t, localName, parent):
+        xforms.VariableDeclarator(t, path.parentPath, uidMap);
+        return true;
+      
+      // Anything else prevents transformation.
+      default:
+        return false;
+    }
+  });
 }
 
 function setupState() {
@@ -233,23 +221,33 @@ function setupState() {
   }));
 }
 
-function ImportDeclaration(t, path, state) {
-  const { node, scope } = path;
+function ImportNamespaceSpecifier(t, specPath, state) {
+  const { node: { local: { name } }, parent, scope } = specPath;
   const whitelist = state.get($pluginName);
 
-  if (!shouldTransform(node.source.value, whitelist)) return;
+  if (!t.isImportDeclaration(parent)) return;
+  if (!shouldTransform(parent.source.value, whitelist)) return;
 
-  node.specifiers = flatten(node.specifiers.map((spec) => {
-    if (!t.isImportNamespaceSpecifier(spec)) return spec;
+  const uidMap = new UidMap(t, scope);
+  if (!tryDoTransforms(t, name, scope, uidMap)) return;
+  
+  const newSpecifiers = uidMap.getSpecifiers();
+  if (newSpecifiers.length === 0) return;
 
-    const transformations = getTransforms(t, spec.local.name, scope);
-    if (transformations.length === 0) return spec;
+  const importPath = specPath.parentPath;
 
-    const uidMap = new UidMap(t, scope);
-    transformations.forEach(xformFn => xformFn(uidMap));
+  // Separate the new specifiers into their own declaration.
+  // This allows other plugins the opportunity to perform additional
+  // work on the transformed imports.
+  importPath.insertAfter(t.importDeclaration(
+    newSpecifiers, parent.source
+  ));
 
-    return uidMap.getSpecifiers();
-  }));
+  // Clean up; remove the original specifier and import declaration,
+  // if it is no longer needed.
+  specPath.remove();
+  if (parent.specifiers.length === 0)
+    importPath.remove();
 }
 
 module.exports = function resolveWildcardImports(api) {
@@ -257,7 +255,7 @@ module.exports = function resolveWildcardImports(api) {
     name: $pluginName,
     pre: setupState,
     visitor: {
-      ImportDeclaration: ImportDeclaration.bind(null, api.types)
+      ImportNamespaceSpecifier: ImportNamespaceSpecifier.bind(null, api.types)
     }
   };
 };
