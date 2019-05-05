@@ -15,10 +15,7 @@ function jsxTest(includeOutput, mixin) {
     !includeOutput ? null : {
       output: `
         import { A as _A } from 'y';
-        var x = {
-          A: _A
-        };
-        <x.A></x.A>;
+        <_A></_A>;
       `
     },
     mixin
@@ -32,6 +29,13 @@ pluginTester({
     filename: path.join(__dirname, 'fixture.js'),
     sourceRoot: __dirname
   },
+  formatResult: (result) => {
+    // Remove no-content lines from the result.
+    return result
+      .split('\n')
+      .filter(line => Boolean(line.trim()))
+      .join('\n');
+  },
   tests: {
     'should handle basic wildcard case': {
       code: `
@@ -42,14 +46,9 @@ pluginTester({
       `,
       output: `
         import { a as _a, b as _b, c as _c } from 'y';
-        var x = {
-          a: _a,
-          b: _b,
-          c: _c
-        };
-        x.a();
-        x.b();
-        x.c.d();
+        _a();
+        _b();
+        _c.d();
       `,
     },
 
@@ -116,19 +115,51 @@ pluginTester({
       `,
     },
 
-    'should transform from destructuring assignments': {
+    'should transform from destructuring assignments, basic usage': {
       code: `
         import * as x from 'y';
-        var { a, b, c } = x;
+        var { a, b, c: see } = x;
       `,
       output: `
-        import { a as _a, b as _b, c as _c } from 'y';
-        var x = {
-          a: _a,
-          b: _b,
-          c: _c
-        };
-        var { a, b, c } = x;
+        import { a, b, c as see } from 'y';
+      `,
+    },
+
+    'should transform from destructuring assignments, complex usage': {
+      code: `
+        import * as x from 'y';
+        x.c();
+        var { a, b, c: see } = x;
+      `,
+      output: `
+        import { c as _c, a, b } from 'y';
+        _c();
+        var see = _c;
+      `,
+    },
+
+    'should transform from destructuring assignments, constant violation': {
+      code: `
+        import * as x from 'y';
+        var { a, b, c: see } = x;
+        see = {};
+      `,
+      output: `
+        import { a, b, c as _c } from 'y';
+        var see = _c;
+        see = {};
+      `,
+    },
+
+    'should transform from destructuring assignments, nested usage': {
+      code: `
+        import * as x from 'y';
+        var { a, b: { t, u }, c: { v: vee } } = x;
+      `,
+      output: `
+        import { a, b as _b, c as _c } from 'y';
+        var { t, u } = _b,
+            { v: vee } = _c;
       `,
     },
 
