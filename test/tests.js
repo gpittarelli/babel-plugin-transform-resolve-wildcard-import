@@ -239,6 +239,32 @@ pluginTester({
         import * as x from 'y';
         var { ['A'.toLowerCase()]: a, b, c } = x;
       `,
+    },
+
+    'should not transform from destructuring assignments with default values': {
+      code: `
+        import * as x from 'y';
+        var { a, b, c = 'see' } = x;
+      `,
+    },
+
+    'should not transform from destructuring assignments with object-spread pattern': {
+      babelOptions: {
+        parserOpts: {
+          plugins: ['objectRestSpread']
+        }
+      },
+      code: `
+        import * as x from 'y';
+        var { a, b, ...rest } = x;
+      `,
+    },
+
+    'should not transform from destructuring assignments with array pattern': {
+      code: `
+        import * as x from 'y';
+        var [a, b] = x;
+      `,
     }
   }
 });
