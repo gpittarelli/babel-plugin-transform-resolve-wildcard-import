@@ -229,7 +229,7 @@ passed as `only`:
     "plugins": [
         ["babel-plugin-transform-resolve-wildcard-import", { "only": [
             "^lodash$",
-            "^\.\.?\/UI(\/(index(\.js)?)?)?$"
+            "^\\.\\.?\/UI(\/(index(\\.js)?)?)?$"
         ]}]
     ]
 }
