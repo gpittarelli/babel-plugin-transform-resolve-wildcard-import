@@ -188,6 +188,45 @@ pluginTester({
       `,
     },
 
+    'should transform from duplicated destructuring assignments, assigned intermediate': {
+      code: `
+        import * as x from 'y';
+        var { a, b } = x;
+        var { b: { t, u } } = x;
+        var { b: { v } } = x;
+      `,
+      output: `
+        import { a, b } from 'y';
+        var { t, u } = b;
+        var { v } = b;
+      `,
+    },
+
+    'should transform from duplicated destructuring assignments, unassigned intermediate': {
+      code: `
+        import * as x from 'y';
+        var { a, b: { t, u } } = x;
+        var { b: { v } } = x;
+      `,
+      output: `
+        import { a, b as _b } from 'y';
+        var { t, u } = _b;
+        var { v } = _b;
+      `,
+    },
+
+    'should transform from duplicated destructuring assignments, alternative identifier': {
+      code: `
+        import * as x from 'y';
+        var { a, b } = x;
+        var { b: bee } = x;
+      `,
+      output: `
+        import { a, b } from 'y';
+        var bee = b;
+      `,
+    },
+
     'should not transform from destructuring assignments with literal properties': {
       code: `
         import * as x from 'y';
