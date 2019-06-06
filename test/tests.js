@@ -70,11 +70,18 @@ pluginTester({
       `,
     },
 
-    'should not transform if any non-property usages': {
+    'should not transform when bracketed property access syntax is used': {
       code: `
         import * as x from 'y';
         var a = 'a';
         x[a]();
+      `,
+    },
+
+    'should not transform in the case of direct usage': {
+      code: `
+        import * as x from 'y';
+        console.log(Object.keys(x));
       `,
     },
 
