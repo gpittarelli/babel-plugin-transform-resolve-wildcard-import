@@ -172,11 +172,11 @@ pluginTester({
     'should transform from destructuring assignments, nested usage': {
       code: `
         import * as x from 'y';
-        var { a, b: { t, u }, c: { v: vee } } = x;
+        var { a, b: { t, ['u']: you }, c: { v: vee } } = x;
       `,
       output: `
         import { a, b as _b, c as _c } from 'y';
-        var { t, u } = _b,
+        var { t, ['u']: you } = _b,
             { v: vee } = _c;
       `,
     },
