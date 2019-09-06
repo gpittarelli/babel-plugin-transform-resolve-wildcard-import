@@ -145,7 +145,6 @@ Example:
 
 ```javascript
 import * as x from 'y';
-const key = 'c';
 const {
     a, b,
     c = Math.random  // De-opt here!
@@ -188,7 +187,6 @@ Example with Object-Spread Pattern:
 
 ```javascript
 import * as x from 'y';
-const key = 'b';
 const {
     a, b,
     ...rest  // De-opt here!
