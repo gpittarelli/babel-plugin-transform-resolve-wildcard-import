@@ -265,6 +265,14 @@ pluginTester({
         import * as x from 'y';
         var [a, b] = x;
       `,
+    },
+
+    'should not transform when a de-opt occurs after a successful transform': {
+      code: `
+        import * as x from 'y';
+        var { a, b: { t, ['u']: you } } = x;
+        var [c, d] = x;
+      `,
     }
   }
 });
