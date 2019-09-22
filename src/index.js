@@ -164,6 +164,28 @@ const xforms = {
   }
 };
 
+function bindTransform(t, localName, path, uidMap) {
+  const parent = path.parent;
+
+  switch (true) {
+    // Member access...
+    case t.isMemberExpression(parent) && !parent.computed:
+      return xforms.MemberExpression.bind(null, t, path.parentPath, uidMap);
+    
+    // JSX member access...
+    case t.isJSXMemberExpression(parent):
+      return xforms.JSXMemberExpression.bind(null, t, path.parentPath, uidMap);
+
+    // Object destructuring assignment...
+    case checkDestructure(t, localName, parent):
+      return xforms.VariableDeclarator.bind(null, t, path.parentPath, uidMap);
+    
+    // Anything else prevents transformation.
+    default:
+      return null;
+  }
+}
+
 function tryDoTransforms(t, localName, scope, uidMap) {
   if (!scope.hasBinding(localName)) return false;
 
@@ -176,30 +198,15 @@ function tryDoTransforms(t, localName, scope, uidMap) {
   if (binding.constantViolations.length > 0) return false;
   if (binding.referencePaths.length === 0) return false;
 
-  return binding.referencePaths.every((path) => {
-    const parent = path.parent;
+  const boundTransforms = [];
+  for (const path of binding.referencePaths) {
+    const fn = bindTransform(t, localName, path, uidMap);
+    if (!fn) return false;
+    boundTransforms.push(fn);
+  }
 
-    switch (true) {
-      // Member access...
-      case t.isMemberExpression(parent) && !parent.computed:
-        xforms.MemberExpression(t, path.parentPath, uidMap);
-        return true;
-      
-      // JSX member access...
-      case t.isJSXMemberExpression(parent):
-        xforms.JSXMemberExpression(t, path.parentPath, uidMap);
-        return true;
-
-      // Object destructuring assignment...
-      case checkDestructure(t, localName, parent):
-        xforms.VariableDeclarator(t, path.parentPath, uidMap);
-        return true;
-      
-      // Anything else prevents transformation.
-      default:
-        return false;
-    }
-  });
+  for (const fn of boundTransforms) fn();
+  return true;
 }
 
 function setupState() {
