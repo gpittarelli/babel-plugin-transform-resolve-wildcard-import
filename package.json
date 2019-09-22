@@ -1,7 +1,7 @@
 {
   "name": "babel-plugin-transform-resolve-wildcard-import",
   "version": "0.1.1",
-  "description": "Transforms wildcard imports (import * as x from 'y';x.a();) to member style imports (import {a} from 'y';a();)",
+  "description": "Transforms wildcard imports (import * as x from 'y'; x.a();) to member style imports (import {a} from 'y'; a();).",
   "keywords": [
     "babel",
     "plugin",
@@ -11,17 +11,25 @@
     "resolve"
   ],
   "main": "src/index.js",
+  "files": ["src/*.js"],
   "repository": {
     "type": "git",
     "url": "https://github.com/gpittarelli/babel-plugin-transform-resolve-wildcard-import.git"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "debug-test": "mocha --inspect-brk"
   },
   "author": "George Pittarelli <g@gjp.cc>",
   "license": "MIT",
+  "engines": {
+    "node": ">=6.0.0"
+  },
   "devDependencies": {
     "babel-core": "^6.20.0",
+    "babel-plugin-syntax-jsx": "^6.18.0",
+    "babel-plugin-tester": "^6.0.1",
+    "babel-plugin-transform-export-extensions": "^6.22.0",
     "mocha": "3.4.2"
   }
 }
